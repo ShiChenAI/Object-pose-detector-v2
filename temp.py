@@ -1,9 +1,10 @@
 import argparse
-
+import time
 import cv2
 import torch
 
 from mmdet.apis import inference_detector, init_detector
+import mmcv
 
 
 def parse_args():
@@ -31,15 +32,22 @@ def main():
 
     print('Press "Esc", "q" or "Q" to exit.')
     while True:
+        total_tic = time.time()
         ret_val, img = camera.read()
         result = inference_detector(model, img)
-
+        total_toc = time.time()
+        total_time = total_toc - total_tic
+        frame_rate = 1 / total_time
+        print('{:.2f}fps'.format(frame_rate))
         ch = cv2.waitKey(1)
         if ch == 27 or ch == ord('q') or ch == ord('Q'):
             break
 
-        model.show_result(
-            img, result, score_thr=args.score_thr, wait_time=1, show=True)
+        frame = model.show_result(img, result, score_thr=args.score_thr)
+        cv2.namedWindow('video', 0)
+        mmcv.imshow(frame, 'video', 1)
+    
+    cv2.destroyAllWindows()
 
 
 if __name__ == '__main__':
