@@ -6,11 +6,10 @@ import warnings
 import torch
 
 from mmdet.apis import inference_detector, init_detector
-from mmpose.apis import (collect_multi_frames, inference_top_down_pose_model,
-                         init_pose_model, process_mmdet_results,
-                         vis_pose_result)
+from mmpose.apis import (inference_top_down_pose_model,
+                         init_pose_model, process_mmdet_results)
 from mmpose.datasets import DatasetInfo
-from utils import show_result
+from utils import display_results, generate_obj_colors
 
 def parse_args():
     parser = argparse.ArgumentParser(description='MMDetection webcam demo')
@@ -52,6 +51,7 @@ def main():
     # build the detection model from a config file and a checkpoint file
     det_model = init_detector(
         args.det_config, args.det_checkpoint, device=args.device.lower())
+    obj_colors = generate_obj_colors(det_model.CLASSES)
 
     # build the pose model from a config file and a checkpoint file
     pose_model = init_pose_model(
@@ -76,9 +76,6 @@ def main():
     output_layer_names = None
 
     camera = cv2.VideoCapture(args.camera_id)
-    #camera.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('H', '2', '6', '4'))
-    #camera.set(cv2.CAP_PROP_FPS, 30)
-    #camera.set(cv2.CAP_PROP_BUFFERSIZE, 3)
 
     print('Press "Esc", "q" or "Q" to exit.')
     while True:
@@ -104,27 +101,25 @@ def main():
             return_heatmap=return_heatmap,
             outputs=output_layer_names)
 
-        # show the results
-        vis_frame = vis_pose_result(
-            pose_model,
-            img,
-            pose_results,
-            dataset=dataset,
-            dataset_info=dataset_info,
-            kpt_score_thr=args.kpt_thr,
-            radius=args.radius,
-            thickness=args.thickness,
-            show=False)
         
+        frame = display_results(img,
+                                mmdet_results,
+                                pose_results,
+                                det_score_thr=0.5,
+                                pose_score_thr=0.3,
+                                dataset='TopDownCocoDataset',
+                                dataset_info=None,
+                                obj_colors=obj_colors,
+                                obj_class_names=det_model.CLASSES,
+                                text_color='blue',
+                                thickness=2)
         
         ch = cv2.waitKey(1)
         if ch == 27 or ch == ord('q') or ch == ord('Q'):
             break
 
-        frame = show_result(vis_frame, mmdet_results, det_model.CLASSES, score_thr=args.bbox_thr)
         #cv2.namedWindow('video', 0)
         cv2.imshow('video', frame)
-        #mmcv.imshow(frame, 'video', 1)
         total_toc = time.time()
         total_time = total_toc - total_tic
         frame_rate = 1 / total_time
