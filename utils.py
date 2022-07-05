@@ -15,8 +15,8 @@ def generate_obj_colors(obj_class_names):
 def display_results(img, 
                     det_results, 
                     pose_results, 
-                    det_score_thr=0.3,
-                    pose_score_thr=0.3,
+                    bbox_thr=0.3,
+                    kpt_thr=0.3,
                     dataset='TopDownCocoDataset', 
                     dataset_info=None,
                     font_scale=0.5,
@@ -46,10 +46,10 @@ def display_results(img,
         else:
             segms = np.stack(segms, axis=0)
 
-    if det_score_thr > 0:
+    if bbox_thr > 0:
         assert bboxes.shape[1] == 5
         scores = bboxes[:, -1]
-        inds = scores > det_score_thr
+        inds = scores > bbox_thr
         bboxes = bboxes[inds, :]
         labels = labels[inds]
         if segms is not None:
@@ -300,7 +300,7 @@ def display_results(img,
         else:
             NotImplementedError()
         
-        imshow_keypoints(img, pose_result, skeleton, pose_score_thr,
+        imshow_keypoints(img, pose_result, skeleton, kpt_thr,
                          pose_kpt_color, pose_link_color, radius,
                          thickness)
 
