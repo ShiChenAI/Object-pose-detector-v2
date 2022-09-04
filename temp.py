@@ -1,9 +1,7 @@
 import argparse
-from re import I
 import time
 import cv2
 import warnings
-import torch
 
 from mmdet.apis import inference_detector, init_detector
 from mmpose.apis import (inference_top_down_pose_model, inference_bottom_up_pose_model,
