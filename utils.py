@@ -337,23 +337,32 @@ def display_results(img,
 
     return img
 
-def process_det_results(det_results, bbox_thr_list=[0.65, 0.2, 0.2]):
-    if isinstance(det_results, tuple):
-        bbox_result, segm_result = det_results
-        if isinstance(segm_result, tuple):
-            segm_result = segm_result[0]  # ms rcnn
-    else:
-        bbox_result, segm_result = det_results, None
-    bboxes = np.vstack(bbox_result)
-    labels = [
-        np.full(bbox.shape[0], i, dtype=np.int32)
-        for i, bbox in enumerate(bbox_result)
-    ]
+def process_det_results(det_results, bbox_thr):
+    """Removing low scoring bboxes using different thresholds 
+       for different categories respectively.
+
+    Args:
+        det_results (list): The object detection results.
+        bbox_thr (list or float): The thresholds for each category to remove bboxes 
+                                  (or use a uniform threshold for different categories 
+                                   if it is a float type).
+
+    Returns:
+        ndarray: The detection results after removing low scoring bboxes.
+        ndarray: The labels corresponding to the detection results.
+    """    
+    
+    bboxes = np.vstack(det_results)
+    labels = [np.full(bbox.shape[0], i, dtype=np.int32)
+              for i, bbox in enumerate(det_results)]
     labels = np.concatenate(labels)
-    thrs = np.array(bbox_thr_list)[labels]
+
+    if isinstance(bbox_thr, list):
+        bbox_thr = np.array(bbox_thr)[labels]
+
     assert bboxes.shape[1] == 5
     scores = bboxes[:, -1]
-    inds = scores > thrs
+    inds = scores > bbox_thr
     bboxes = bboxes[inds, :]
     labels = labels[inds]
 
@@ -371,34 +380,65 @@ def display_processed_results(img,
                               obj_class_names=None,
                               text_color='white',
                               radius=4,
-                              thickness=1):
+                              bbox_thickness=1,
+                              skeleton_thickness=1,
+                              text_thickness=1,
+                              show_scores=True):
+    """Draw object detection and pose estimation results over `img`.
+
+    Args:
+        img (ndarray): The image to be displayed.
+        bboxes (nddarray): The object detection results after removing low scoring bboxes.
+        labels (ndarray): The labels corresponding to the object detection results.
+        pose_results (list): The pose estimation results.
+        kpt_thr (float, optional): The minimum score of keypoints to be shown. 
+                                   Defaults to 0.3.
+        dataset (str, optional): The type of the pose estimation dataset. 
+                                 Defaults to 'TopDownCocoDataset'.
+        dataset_info (DatasetInfo, optional): The dataset information (containing skeletons, 
+                                              links, visualization colors, etc..) 
+                                              Defaults to None.
+        font_scale (int, optional): The font scale for drawing texts. Defaults to 2.
+        obj_colors (dict, optional): The colors of the bboxes (key-obj_class_name). 
+                                     Defaults to None.
+        obj_class_names (list, optional): The object class names. Defaults to None.
+        text_color (str, optional): The colors of the texts. Defaults to 'white'.
+        radius (int, optional): The radius for drawing keypoints. Defaults to 4.
+        bbox_thickness (int, optional): The thickness for drawing bboxes. Defaults to 1.
+        skeleton_thickness (int, optional): The thickness for drawing skeletons. Defaults to 1.
+        text_thickness (int, optional): The thickness for drawing texts. Defaults to 1.
+        show_scores (bool, optional): Whether to show the bbox scores. Defaults to True.
+
+    Returns:
+        ndarray: the displayed image.
+    """
 
     for i, (bbox, label) in enumerate(zip(bboxes, labels)):
         if label is None:
             continue
+
         class_name = obj_class_names[label]
         bbox_int = bbox.astype(np.int32)
         left_top = (bbox_int[0], bbox_int[1])
         right_bottom = (bbox_int[2], bbox_int[3])
-        cv2.rectangle(
-            img, left_top, right_bottom, obj_colors[class_name], thickness=thickness)
-        # roughly estimate the proper font size
+        cv2.rectangle(img, left_top, right_bottom, 
+                      obj_colors[class_name], thickness=bbox_thickness)
+        
+        # Roughly estimate the proper font size
         label_text = class_name if class_name is not None else f'class {label}'
-        show_score = False
-        if len(bbox) > 4 and show_score:
+        if len(bbox) > 4 and show_scores:
             label_text += f'{bbox[-1]:.02f}'
         text_size, text_baseline = cv2.getTextSize(label_text,
                                                     cv2.FONT_HERSHEY_DUPLEX,
-                                                    font_scale, thickness)
+                                                    font_scale, text_thickness)
         text_x1 = bbox_int[0]
         text_y1 = max(0, bbox_int[1] - text_size[1] - text_baseline)
         text_x2 = bbox_int[0] + text_size[0]
         text_y2 = text_y1 + text_size[1] + text_baseline
-        #cv2.rectangle(img, (text_x1, text_y1), (text_x2, text_y2), color,
-        #                cv2.FILLED)
+        
         cv2.putText(img, label_text, (text_x1, text_y2 - text_baseline),
                     cv2.FONT_HERSHEY_DUPLEX, font_scale,
-                    mmcv.color_val(text_color), thickness)
+                    mmcv.color_val(text_color), text_thickness)
     
     # Visualize the pose results
     pose_result = []
@@ -621,6 +661,6 @@ def display_processed_results(img,
         
         imshow_keypoints(img, pose_result, skeleton, kpt_thr,
                          pose_kpt_color, pose_link_color, radius,
-                         thickness)
+                         skeleton_thickness)
 
     return img
