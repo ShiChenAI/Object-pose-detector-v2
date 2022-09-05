@@ -74,7 +74,7 @@ def process_img(img_path,
     # get the detection results of current frame
     # the resulting box is (x1, y1, x2, y2).
     mmdet_results = inference_detector(det_model, img)
-    bboxes, labels  = process_det_results(mmdet_results)
+    bboxes, labels  = process_det_results(mmdet_results, [0.6, 0.2, 0.2])
     is_malicious = 0
     if 0 in labels:
         is_malicious = 1
@@ -133,7 +133,10 @@ def process_img(img_path,
                                         obj_class_names=det_model.CLASSES,
                                         text_color='blue',
                                         radius=radius,
-                                        thickness=thickness)
+                                        bbox_thickness=thickness,
+                                        skeleton_thickness=thickness,
+                                        text_thickness=thickness,
+                                        show_scores=False)
     total_toc = time.time()
     total_time = total_toc - total_tic
     frame_rate = 1 / total_time
