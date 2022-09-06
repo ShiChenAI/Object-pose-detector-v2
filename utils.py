@@ -12,36 +12,49 @@ from mmpose.core import imshow_bboxes, imshow_keypoints
 import colorsys
 import random
  
-def get_n_hls_colors(num):
-    hls_colors = []
-    i = 0
-    step = 360.0 / num
-    while i < 360:
-        h = i
-        s = 90 + random.random() * 10
-        l = 50 + random.random() * 10
-        _hlsc = [h / 360.0, l / 100.0, s / 100.0]
-        hls_colors.append(_hlsc)
-        i += step
+def generate_hls_colors(len_classes):
+    """Randomly generate hls colors corresponding to the number of object categories.
+
+    Args:
+        len_classes (int): The number of object categories.
+
+    Returns:
+        list: The generated hls colors.
+    """    
+
+    return [[i / 360.0, 
+             (50 + random.random() * 10) / 100.0, 
+             (90 + random.random() * 10) / 100.0] 
+            for i in range(0, 360, int(360.0 / len_classes))]
  
-    return hls_colors
- 
-def ncolors(num):
-    rgb_colors = []
-    if num < 1:
-        return rgb_colors
-    hls_colors = get_n_hls_colors(num)
-    for hlsc in hls_colors:
-        _r, _g, _b = colorsys.hls_to_rgb(hlsc[0], hlsc[1], hlsc[2])
-        r, g, b = [int(x * 255.0) for x in (_r, _g, _b)]
-        rgb_colors.append([r, g, b])
- 
-    return rgb_colors
+def generate_rgb_colors(len_classes):
+    """Randomly generate rgb colors corresponding to the number of object categories.
+
+    Args:
+        len_classes (int): The number of object categories.
+
+    Returns:
+        list: The generated rgb colors.
+    """   
+
+    rgb_colors = [[int(i * 255.0) for i in colorsys.hls_to_rgb(hlsc[0], hlsc[1], hlsc[2])]
+                  for hlsc in generate_hls_colors(len_classes)]
+    
+    return [] if len_classes < 1 else rgb_colors
 
 def generate_obj_colors(obj_class_names):
+    """Randomly generate different colors for bboxes of each category of objects.
+
+    Args:
+        obj_class_names (list): The names of object categories.
+
+    Returns:
+        dict: The generated bboxes colors.
+    """    
+    
     #return {obj_class_name: [random.randint(0, 255) for _ in range(3)] for obj_class_name in obj_class_names}
-    nc = ncolors(len(obj_class_names))
-    return {obj_class_name: nc[i] for i, obj_class_name in enumerate(obj_class_names)}
+    rgb_colors = generate_rgb_colors(len(obj_class_names))
+    return {obj_class_name: rgb_colors[i] for i, obj_class_name in enumerate(obj_class_names)}
 
 def display_results(img, 
                     det_results, 
