@@ -42,6 +42,8 @@ def parse_args():
                         help='Save directory of output images.')
     parser.add_argument('--show-score', action='store_true',
                         help='Whether to show scores when visualizing.')
+    parser.add_argument('--vis-pose', action='store_true',
+                        help='Whether to visualize pose results.')
     args = parser.parse_args()
     return args
 
@@ -57,7 +59,8 @@ def process_img(img_path,
                 thickness, 
                 bbox_thr,
                 pose_nms_thr=0.5,
-                show_score=True):
+                show_score=True,
+                vis_pose=True):
     """Object detection and pose recognition inference on a single image 
        with visualization of results.
 
@@ -75,12 +78,13 @@ def process_img(img_path,
         bbox_thr (list): The bounding box score thresholds.
         pose_nms_thr (float, optional): The OKS threshold for bottom-up pose NMS. Defaults to 0.5.
         show_score (bool, optional): Whether to show scores when visualizing. Defaults to True.
+        vis_pose (bool, optional): Whether to visualize pose results.
 
     Returns:
         ndarray: The visualized results.
         float: The frame rate.
     """    
-    
+
     total_tic = time.time()
 
     img = cv2.imread(img_path)
@@ -130,7 +134,8 @@ def process_img(img_path,
                                          bbox_thickness=thickness,
                                          skeleton_thickness=thickness,
                                          text_thickness=thickness,
-                                         show_scores=show_score)
+                                         show_scores=show_score,
+                                         vis_pose=vis_pose)
     total_toc = time.time()
     total_time = total_toc - total_tic
     frame_rate = 1 / total_time
@@ -183,7 +188,8 @@ def main():
                                                args.radius,
                                                args.thickness,
                                                args.bbox_thr,
-                                               args.show_score)
+                                               show_score=args.show_score,
+                                               vis_pose=args.vis_pose)
             
             if args.save_dir:
                 if not os.path.exists(args.save_dir):
@@ -212,7 +218,8 @@ def main():
                                            args.radius,
                                            args.thickness,
                                            args.bbox_thr,
-                                           args.show_score)
+                                           show_score=args.show_score,
+                                           vis_pose=args.vis_pose)
 
         if args.save_dir:
             if not os.path.exists(args.save_dir):
