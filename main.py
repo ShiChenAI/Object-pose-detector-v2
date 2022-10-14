@@ -1,4 +1,5 @@
 import argparse
+from curses.ascii import isdigit
 import time
 import cv2
 import os
@@ -47,7 +48,7 @@ def parse_args():
     args = parser.parse_args()
     return args
 
-def process_img(img_path, 
+def process_img(img_src, 
                 det_model, 
                 pose_model, 
                 det_person_id,
@@ -87,7 +88,7 @@ def process_img(img_path,
 
     total_tic = time.time()
 
-    img = cv2.imread(img_path)
+    img = cv2.imread(img_src) if os.path.isfile(img_src) else img_src
 
     # Object detection inference for a single image.
     mmdet_results = inference_detector(det_model, img)
@@ -233,6 +234,29 @@ def main():
             cv2.destroyAllWindows()
             
         print('Processing: {0} with {1:.2f} FPS'.format(args.img_src, frame_rate))
+    elif isdigit(args.img_src):
+        cap = cv2.VideoCapture(int(args.img_src))
+        while True:
+            ret, frame = cap.read()
+            img_show, frame_rate = process_img(frame,
+                                            det_model,
+                                            pose_model,
+                                            args.det_person_id,
+                                            dataset,
+                                            dataset_info,
+                                            args.kpt_thr,
+                                            obj_colors,
+                                            args.radius,
+                                            args.thickness,
+                                            args.bbox_thr,
+                                            show_score=args.show_score,
+                                            vis_pose=args.vis_pose)
+
+            cv2.imshow('image', img_show)
+            if cv2.waitKey(1) & 0xFF == ord('q'):
+                cv2.destroyAllWindows()
+                cap.release()
+                break
 
 if __name__ == '__main__':
     main()
